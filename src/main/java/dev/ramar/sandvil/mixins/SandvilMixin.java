@@ -35,35 +35,38 @@ public class SandvilMixin
 	{
 		public static Identifier ANVIL = new Identifier("minecraft", "anvil");
 	}
+
+	// whatever correlates here is what we can crush
 	private static final Map<String, Identifier> crushConversion = new HashMap<>();
+	// whatever correlates here is what anvils turn into when they crush
+	private static final Map<String, Identifier> anvilConversion = new HashMap<>();
 	static
 	{
 		crushConversion.put("block.minecraft.stone", new Identifier("minecraft", "cobblestone"));
 		crushConversion.put("block.minecraft.cobblestone", new Identifier("minecraft", "gravel"));
 		crushConversion.put("block.minecraft.gravel", new Identifier("minecraft", "sand"));
+
+		anvilConversion.put("block.minecraft.chipped_anvil", new Identifier("minecraft", "anvil"));
+		anvilConversion.put("block.minecraft.damaged_anvil", new Identifier("minecraft", "chipped_anvil"));
 	}
+
 
 	private static double CRUSH_DISTANCE = 3.0;
 
 
 	public boolean isDamagedAnvil(BlockState bs)
 	{
-		return bs.getBlock().getTranslationKey().equals("block.minecraft.chipped_anvil");
+		if( bs != null )
+			return bs.getBlock().getTranslationKey().equals("block.minecraft.chipped_anvil")
+			 	|| bs.getBlock().getTranslationKey().equals("block.minecraft.damaged_anvil");
+
+		return false;
 	}
 
-	/*
-	method
-	public void onLanding(World world, BlockPos pos, BlockState fallingBlockState, BlockState currentStateInPos, FallingBlockEntity fallingBlockEntity)
-	
-	expanded:	
-	onLanding(
-	Lnet/minecraft/world/World;
-	Lnet/minecraft/util/math/BlockPos;
-	Lnet/minecraft/block/BlockState;
-	Lnet/minecraft/block/BlockState;
-	Lnet/minecraft/entity/FallingBlockEntity;)V
-	*/
 
+	/* Injected Method: onLanding_swapBlock
+	 *  - Where the magic happens :^) 
+	 */
 	@Inject(at = @At("HEAD"), method = "onLanding(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Lnet/minecraft/block/BlockState;Lnet/minecraft/entity/FallingBlockEntity;)V")
 	public void onLanding_swapBlock(World w, BlockPos p, BlockState fbState, BlockState pState, FallingBlockEntity fbe, CallbackInfo cbi)
 	{
@@ -74,25 +77,26 @@ public class SandvilMixin
 		{
 			if( this.crushBlock(w, p, fbState, pState, fbe, cbi) )
 			{
-				SandvilMod.LOGGER.info("crushBlock!");
-				// we need to make sure that if we did crush the block, that the anvil didn't get damaged. i don't know how to do that normally soooo
+				// we need to make sure that since we did crush the block
+				// that the anvil didn't get damaged. i don't know how to do that normally soooo
 				BlockState bs = w.getBlockState(p);
 				if( this.isDamagedAnvil(bs) )
 				{
-					SandvilMod.LOGGER.info("replacing crushed anvil! ");
 					BlockState freshAnvil = Registry.BLOCK.get(new Identifier("minecraft", "anvil")).getDefaultState();
-					SandvilMod.LOGGER.info("default anvil: " + freshAnvil);
 					w.setBlockState(p, freshAnvil);
-					// SandvilMod.LOGGER.info("fresh anvil: " + freshAnvil);
-
 				}
 			}
 		}
-		// yeah... this is epic
+		// not entirely sure what causes whatever exception happens here
+		// but sometimes something relating to the crushBlock method will
+		// bubble up an exception, so we're just lazy catching anything here haha
 		catch(Exception e) {}
 	}
 
 
+	/* Method: convertBlockState
+	 *  - if <bs> is in <crushConversion>, it will return the block state of its relation
+	 */
 	public BlockState convertBlockState(BlockState bs)
 	{	
 		BlockState out = null;
@@ -109,6 +113,10 @@ public class SandvilMixin
 
 
 
+	/* Method: crushBlock
+	 *  - Will attempt to crush the block at <p> in <w> 
+	 *  - returns true if successfully crushed
+	 */
 	private boolean crushBlock(World w, BlockPos p, BlockState fbState, BlockState pState, FallingBlockEntity fbe, CallbackInfo cbi)
 	{
 		boolean success = false;
