@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.ramar.sandvil.mixins",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "SandvilMixin"
+  ],
+  "server": [
+  ],  
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
