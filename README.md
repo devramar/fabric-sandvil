@@ -1,5 +1,7 @@
 # Sandvil!! (in fabric)
 
+A mod about getting renewable sand without the glitches :))
+
 ## Setup
 
 Install / Setup JDK 16, make sure it's in your environment variables! (java -version OR java --version to find out what your command line is targeting!)
